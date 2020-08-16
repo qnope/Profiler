@@ -1,0 +1,3 @@
+[submodule "3rd/little-type-library"]
+	path = 3rd/little-type-library
+	url = https://github.com/qnope/little-type-library
