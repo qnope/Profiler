@@ -1,5 +1,7 @@
 add_executable(CompilerProfiler
   cpp/main.cpp
+  cpp/utils/CompileEvent.h
+  cpp/utils/CompileEvent.cpp
   cpp/json/JsonParser.h
   cpp/json/JsonParser.cpp
 

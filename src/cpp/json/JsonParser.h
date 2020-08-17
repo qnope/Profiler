@@ -1,15 +1,5 @@
 #pragma once
 
-#include <chrono>
-#include <string>
-#include <vector>
-#include <QString>
+#include "../utils/CompileEvent.h"
 
-struct CompileEvent {
-    QString details;
-    std::chrono::microseconds begin;
-    std::chrono::microseconds duration;
-    std::vector<CompileEvent> childEvents;
-};
-
-std::vector<CompileEvent> extractCompileEventFromJson(const QString &path);
+CompileEventTree extractCompileEventNodeFromJson(const QString &path);

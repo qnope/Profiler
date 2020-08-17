@@ -3,6 +3,10 @@
 
 #include "json/JsonParser.h"
 
+#include <QDebug>
+
+using namespace std::chrono_literals;
+
 int main(int argc, char *argv[]) {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
@@ -19,9 +23,14 @@ int main(int argc, char *argv[]) {
         Qt::QueuedConnection);
     engine.load(url);
 
-    auto jsonValues = extractCompileEventFromJson("C:/Users/mmorr/Documents/Dossier "
-                                                  "Antoine/little-type-library/build-little-type-library-Clang-"
-                                                  "Debug/CMakeFiles/LittleTypeLibrary.dir/test.cpp.json");
+    auto now = std::chrono::high_resolution_clock::now();
 
+    auto jsonValues = extractCompileEventNodeFromJson(
+        "A:/Programmation/Little-Type-Library/Little-Type-Library/build-Little-Type-Library-Clang-Debug/CMakeFiles/"
+        "LittleTypeLibrary.dir/test.cpp.json");
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    qDebug() << std::chrono::duration_cast<std::chrono::microseconds>(end - now).count();
     return app.exec();
 }

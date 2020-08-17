@@ -6,11 +6,19 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QJsonDocument>
+#include <QDebug>
 
+#include <cassert>
+
+#include <ltl/algos.h>
 #include <ltl/operator.h>
+#include <ltl/functional.h>
 #include <ltl/Range/actions.h>
 
 using namespace std::chrono;
+
+using namespace ltl;
+using namespace ltl::actions;
 
 static QByteArray readFile(const QString &path) {
     QFile file{path};
@@ -23,25 +31,35 @@ static QByteArray readFile(const QString &path) {
     return file.readAll();
 }
 
-auto toCompileEvent(QJsonValue ref) {
-    return CompileEvent{ref["args"]["detail"].toString(), //
-                        microseconds{ref["ts"].toInt()},  //
-                        microseconds{ref["dur"].toInt()}, //
-                        {}};
+static auto toCompileEvent(QJsonValue ref) {
+    return CompileEvent{
+        Pid{ref["pid"].toInt()},          //
+        Tid{ref["tid"].toInt()},          //
+        ref["name"].toString(),           //
+        ref["args"]["detail"].toString(), //
+        microseconds{ref["ts"].toInt()},  //
+        microseconds{ref["dur"].toInt()}  //
+    };
 }
 
-auto constructTreeEvent(const std::vector<CompileEvent> &events) { return events; }
+CompileEventTree parseJsonObject(QJsonDocument document) {
+    CompileEventTree tree;
+    auto sortedEventsByPid = document.object()["traceEvents"].toArray() | //
+                             map(toCompileEvent) |                        //
+                             to_vector |                                  //
+                             sort_by(ascending(&CompileEvent::pid));
 
-std::vector<CompileEvent> parseJsonObject(QJsonDocument document) {
-    auto array = document.object()["traceEvents"].toArray();
-    auto sortedEvents = array |                    //
-                        ltl::map(toCompileEvent) | //
-                        ltl::to_vector |           //
-                        ltl::actions::sort_by([](const auto &a, const auto &b) { return a.begin < b.begin; });
-    return constructTreeEvent(sortedEvents);
+    for (auto [pid, events] : sortedEventsByPid | group_by(&CompileEvent::pid)) {
+        auto sortedEventsByTid = events | to_vector | sort_by(ascending(&CompileEvent::tid));
+        for (auto [tid, events] : sortedEventsByTid | group_by(&CompileEvent::tid)) {
+            tree[pid][tid] = constructTreeEvent(events | to_vector | sort_by(ascending(&CompileEvent::begin)));
+        }
+    }
+
+    return tree;
 }
 
-std::vector<CompileEvent> extractCompileEventFromJson(const QString &path) {
+CompileEventTree extractCompileEventNodeFromJson(const QString &path) {
     auto document = QJsonDocument::fromJson(readFile(path));
 
     if (document.isObject())
